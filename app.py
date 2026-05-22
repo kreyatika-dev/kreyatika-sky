@@ -14,7 +14,7 @@ from detector import YOLODetector
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
 # Initialize DB and AI Engine
-DB_PATH = "analytics.db"
+DB_PATH = os.environ.get("DB_PATH", "analytics.db")
 db = AnalyticsDatabase(DB_PATH)
 detector = YOLODetector(database_path=DB_PATH, model_path="yolo11s.pt")
 
@@ -251,9 +251,11 @@ def export_reports():
     return response
 
 if __name__ == "__main__":
-    # Ensure background worker closes cleanly on main thread exit
     try:
         app.run(host="0.0.0.0", port=5000, debug=False, threaded=True, use_reloader=False)
     finally:
         print("Shutting down AI engine thread...")
         detector.stop()
+
+import atexit
+atexit.register(detector.stop)

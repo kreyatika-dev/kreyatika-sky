@@ -4,9 +4,6 @@
 # Database
 *.db
 
-# Sample media
-*.mp4
-
 # Python
 __pycache__/
 *.pyc

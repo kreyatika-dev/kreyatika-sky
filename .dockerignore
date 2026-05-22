@@ -1,0 +1,22 @@
+# Git
+.git
+.gitignore
+
+# Database (mounted as volume at runtime)
+*.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+
+# Docker files (no need to copy into image)
+Dockerfile
+docker-compose.yml
+.dockerignore
