@@ -1,0 +1,20 @@
+# Model weights
+*.pt
+
+# Database
+*.db
+
+# Sample media
+*.mp4
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# macOS
+.DS_Store
+
+# Logs
+*.log

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Tableau de bord d'analyse de vision par ordinateur Kreyatika Sky. Comptage automatique et intelligent de voitures, motos et piétons en temps réel.">
+    <title>Kreyatika Sky - Dashboard IA de Comptage en Temps Réel</title>
+    
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- SIDEBAR / FLOATING SETTINGS -->
+        <aside class="sidebar-settings" id="settingsSidebar">
+            <div class="sidebar-header">
+                <h3><i data-lucide="sliders"></i> Paramètres IA</h3>
+                <button class="close-btn" id="closeSettingsBtn"><i data-lucide="x"></i></button>
+            </div>
+            
+            <div class="sidebar-body">
+                <div class="setting-group">
+                    <label>Orientation de la Ligne</label>
+                    <div class="orientation-toggle">
+                        <button class="orient-btn" id="btnOrientVertical" data-value="vertical">
+                            <i data-lucide="align-center-vertical"></i> Verticale
+                        </button>
+                        <button class="orient-btn" id="btnOrientHorizontal" data-value="horizontal">
+                            <i data-lucide="align-center-horizontal"></i> Horizontale
+                        </button>
+                    </div>
+                    <small>Verticale pour trafic gauche/droite, Horizontale pour trafic haut/bas.</small>
+                </div>
+
+                <div class="setting-group">
+                    <label for="sliderCountingLine" id="labelCountingLine">Position de la Ligne</label>
+                    <div class="range-container">
+                        <input type="range" id="sliderCountingLine" min="0.1" max="0.9" step="0.05" value="0.5">
+                        <span class="range-val" id="valCountingLine">50%</span>
+                    </div>
+                    <small>Position de la ligne de franchissement dans l'image.</small>
+                </div>
+                
+                <div class="setting-group">
+                    <label for="sliderConfidence">Seuil de Confiance YOLO</label>
+                    <div class="range-container">
+                        <input type="range" id="sliderConfidence" min="0.1" max="0.9" step="0.05" value="0.45">
+                        <span class="range-val" id="valConfidence">45%</span>
+                    </div>
+                    <small>Filtre les détections incertaines.</small>
+                </div>
+                
+                <div class="setting-group">
+                    <label for="sliderAiFps">Cadence d'analyse (AI FPS)</label>
+                    <div class="range-container">
+                        <input type="range" id="sliderAiFps" min="1" max="25" step="1" value="10">
+                        <span class="range-val" id="valAiFps">10 FPS</span>
+                    </div>
+                    <small>Régule la charge du processeur de la caméra.</small>
+                </div>
+
+                <div class="setting-group">
+                    <label for="sliderDisplayFps">Fluidité d'affichage (Display FPS)</label>
+                    <div class="range-container">
+                        <input type="range" id="sliderDisplayFps" min="5" max="30" step="5" value="20">
+                        <span class="range-val" id="valDisplayFps">20 FPS</span>
+                    </div>
+                    <small>Nombre d'images affichées par seconde.</small>
+                </div>
+
+                <div class="setting-group divider"></div>
+
+                <div class="setting-group">
+                    <span class="setting-label">Objets à Analyser</span>
+                    
+                    <label class="toggle-control">
+                        <input type="checkbox" id="chkCars" checked>
+                        <span class="control-indicator"></span>
+                        <span class="label-text"><i data-lucide="car"></i> Voitures & Camions</span>
+                    </label>
+                    
+                    <label class="toggle-control">
+                        <input type="checkbox" id="chkMotos" checked>
+                        <span class="control-indicator"></span>
+                        <span class="label-text"><i data-lucide="bike"></i> Motos & Scooters</span>
+                    </label>
+                    
+                    <label class="toggle-control">
+                        <input type="checkbox" id="chkPersons" checked>
+                        <span class="control-indicator"></span>
+                        <span class="label-text"><i data-lucide="user"></i> Piétons</span>
+                    </label>
+                </div>
+
+                <div class="setting-group">
+                    <label class="toggle-control">
+                        <input type="checkbox" id="chkOverlays" checked>
+                        <span class="control-indicator"></span>
+                        <span class="label-text"><i data-lucide="eye"></i> Afficher les tracés (Overlays)</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="system-stats-compact">
+                    <div class="stat-row">
+                        <span>Charge CPU</span>
+                        <span id="cpuPercentVal">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="cpuProgressFill" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN LAYOUT -->
+        <main class="main-content">
+            
+            <!-- HEADER -->
+            <header class="app-header">
+                <div class="header-logo">
+                    <div class="logo-orb"></div>
+                    <h1>KREYATIKA <span>SKY</span></h1>
+                </div>
+                
+                <div class="header-status">
+                    <div class="camera-badge">
+                        <i data-lucide="video" class="pulse-icon"></i>
+                        <span id="activeCameraName">Connexion au flux...</span>
+                    </div>
+                    <div class="system-status-indicator active">
+                        <span class="status-dot"></span>
+                        <span>Moteur YOLOv11 Actif</span>
+                    </div>
+                </div>
+                
+                <div class="header-actions">
+                    <button class="icon-btn-text btn-restart-engine" id="btnRestartEngine">
+                        <i data-lucide="rotate-cw"></i> <span>Redémarrer</span>
+                    </button>
+                    <button class="icon-btn-text" id="toggleSettingsSidebarBtn">
+                        <i data-lucide="settings"></i> <span>Configuration</span>
+                    </button>
+                    <div class="live-clock" id="liveClock">00:00:00</div>
+                </div>
+            </header>
+
+            <!-- SUB-HEADER / CONTROLS -->
+            <section class="dashboard-grid">
+                
+                <!-- LEFT SECTION: CAMERA STREAM & PERFORMANCE -->
+                <div class="panel grid-span-8 flex-column">
+                    <div class="panel-header">
+                        <h2><i data-lucide="eye"></i> Flux Vidéo Direct</h2>
+                        <div class="panel-actions">
+                            <span class="fps-counter" id="liveFpsVal">0.0 FPS</span>
+                            <span class="latency-counter" id="yoloLatencyVal">0 ms</span>
+                        </div>
+                    </div>
+                    
+                    <div class="video-stream-container">
+                        <img id="videoStreamImage" src="{{ url_for('video_feed') }}" alt="Flux vidéo de comptage en direct">
+                        <div class="video-overlay-alert" id="videoStreamErrorAlert" style="display: none;">
+                            <i data-lucide="video-off"></i>
+                            <p>Le flux vidéo direct est déconnecté.</p>
+                            <span>Tentative de reconnexion en cours...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT SECTION: TODAY'S HIGHLIGHTS & INTERVAL REPORT -->
+                <div class="panel grid-span-4 flex-column">
+                    <div class="panel-header">
+                        <h2><i data-lucide="activity"></i> Statistiques Recueillies</h2>
+                        <div class="panel-tabs">
+                            <button class="tab-btn active" id="btnInterval30m">Dernières 30 Min</button>
+                            <button class="tab-btn" id="btnIntervalToday">Aujourd'hui</button>
+                            <button class="btn-clear-stats" id="btnClearStats" title="Effacer toutes les données"><i data-lucide="trash-2"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- STATS GRID CARDS -->
+                    <div class="stats-cards-grid">
+                        
+                        <!-- CARD 1: CARS -->
+                        <div class="card stat-card car-card">
+                            <div class="card-bg-glow"></div>
+                            <div class="card-content">
+                                <div class="card-icon">
+                                    <i data-lucide="car"></i>
+                                </div>
+                                <div class="card-info">
+                                    <h3>Voitures</h3>
+                                    <p class="counter-number" id="countCarsVal">0</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CARD 2: MOTORCYCLES -->
+                        <div class="card stat-card moto-card">
+                            <div class="card-bg-glow"></div>
+                            <div class="card-content">
+                                <div class="card-icon">
+                                    <i data-lucide="bike"></i>
+                                </div>
+                                <div class="card-info">
+                                    <h3>Motos</h3>
+                                    <p class="counter-number" id="countMotosVal">0</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CARD 3: PERSONS -->
+                        <div class="card stat-card person-card">
+                            <div class="card-bg-glow"></div>
+                            <div class="card-content">
+                                <div class="card-icon">
+                                    <i data-lucide="user"></i>
+                                </div>
+                                <div class="card-info">
+                                    <h3>Piétons</h3>
+                                    <p class="counter-number" id="countPersonsVal">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+
+                    <!-- CHART AREA -->
+                    <div class="panel-sub-header">
+                        <h3><i data-lucide="bar-chart-2"></i> Chronologie des passages</h3>
+                        <div class="chart-toggles">
+                            <button class="mini-toggle active" id="toggleChartRealtime">30m</button>
+                            <button class="mini-toggle" id="toggleChartTrends">24h</button>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container flex-grow">
+                        <canvas id="trafficChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- BOTTOM ROW - CAMERAS MANAGER & ARCHIVE REPORTS -->
+                <div class="panel grid-span-6 flex-column">
+                    <div class="panel-header">
+                        <h2><i data-lucide="video"></i> Gestionnaire des Caméras</h2>
+                        <button class="btn btn-primary" id="openAddCameraModalBtn"><i data-lucide="plus"></i> Nouvelle Caméra</button>
+                    </div>
+                    
+                    <div class="cameras-grid-list" id="camerasGridList">
+                        <!-- Camera Card Sample loaded via JavaScript -->
+                        <div class="skeleton-loader" style="height: 100px; width: 100%;"></div>
+                    </div>
+                </div>
+
+                <div class="panel grid-span-6 flex-column">
+                    <div class="panel-header">
+                        <h2><i data-lucide="file-text"></i> Rapports et Historique</h2>
+                    </div>
+                    
+                    <div class="report-generator-layout">
+                        <div class="report-filters">
+                            <div class="date-input-group">
+                                <label for="reportStartDate">Début</label>
+                                <input type="datetime-local" id="reportStartDate">
+                            </div>
+                            <div class="date-input-group">
+                                <label for="reportEndDate">Fin</label>
+                                <input type="datetime-local" id="reportEndDate">
+                            </div>
+                            <button class="btn btn-secondary" id="btnGenerateReport"><i data-lucide="refresh-cw"></i> Actualiser</button>
+                        </div>
+                        
+                        <div class="report-summary-cards">
+                            <div class="rep-sum-card">
+                                <span class="val-label"><i data-lucide="car"></i> Voitures</span>
+                                <span class="val-num" id="repCarSum">0</span>
+                            </div>
+                            <div class="rep-sum-card">
+                                <span class="val-label"><i data-lucide="bike"></i> Motos</span>
+                                <span class="val-num" id="repMotoSum">0</span>
+                            </div>
+                            <div class="rep-sum-card">
+                                <span class="val-label"><i data-lucide="user"></i> Piétons</span>
+                                <span class="val-num" id="repPersonSum">0</span>
+                            </div>
+                        </div>
+
+                        <div class="report-actions-footer">
+                            <p class="report-disclaimer"><i data-lucide="shield-check"></i> Conformité RGPD : Aucune image, visage ni donnée personnelle n'est stockée sur disque.</p>
+                            <button class="btn btn-gradient" id="btnExportCSV"><i data-lucide="download"></i> Exporter le rapport (.csv)</button>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+            
+        </main>
+        
+        <!-- MODAL: ADD CAMERA -->
+        <div class="modal-overlay" id="addCameraModal">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3>Ajouter une Caméra IP / Flux</h3>
+                    <button class="close-btn" id="closeAddCameraModalBtn"><i data-lucide="x"></i></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addCameraForm">
+                        <div class="form-group">
+                            <label for="cameraInputName">Nom explicite de l'appareil</label>
+                            <input type="text" id="cameraInputName" placeholder="Ex: Entrée principale, Sky Tower Nord" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="cameraInputSource">IP de la Caméra, URL RTSP ou Index Webcam</label>
+                            <input type="text" id="cameraInputSource" placeholder="Ex: 192.168.1.100 ou rtsp://... ou 0" required>
+                            <small class="form-tip">Une simple adresse IP sera formatée automatiquement en flux standard : <code>rtsp://admin:admin@IP:554/live/ch0</code>. Pour votre caméra intégrée Mac, insérez <code>0</code>.</small>
+                        </div>
+                        
+                        <div class="modal-actions">
+                            <button type="button" class="btn btn-text" id="cancelAddCameraBtn">Annuler</button>
+                            <button type="submit" class="btn btn-primary">Enregistrer la Caméra</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Main JS Application script -->
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
