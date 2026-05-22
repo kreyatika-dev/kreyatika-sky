@@ -787,6 +787,29 @@ body {
     color: var(--text-main);
 }
 
+.model-select {
+    width: 100%;
+    margin-top: 6px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-main);
+    font-size: 0.8rem;
+    font-family: var(--font-body);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.model-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.model-select option {
+    background: #0f1128;
+}
+
 .btn-restart-engine.spinning i {
     animation: spin 0.7s linear infinite;
 }

@@ -158,6 +158,7 @@ class YOLODetector:
         self.db = AnalyticsDatabase(database_path)
         
         # Load YOLO Model
+        self.model_path = model_path
         print(f"Loading YOLO model from {model_path}...")
         self.model = YOLO(model_path)
         
@@ -196,6 +197,19 @@ class YOLODetector:
         self.track_starts = {}    # {id: stable_frame_count}
         self.track_cooldown = {}  # {id: last_counted_timestamp}
         self.bbox_tracker = BBoxTracker(max_disappeared=15)
+
+    def switch_model(self, model_path, camera_source):
+        print(f"Switching YOLO model to {model_path}...")
+        self.stop()
+        with self.lock:
+            self.model_path = model_path
+            self.model = YOLO(model_path)
+        print(f"Model loaded: {model_path}")
+        self.start(camera_source)
+
+    def get_model_path(self):
+        with self.lock:
+            return self.model_path
 
     def update_config(self, new_config):
         with self.lock:

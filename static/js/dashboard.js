@@ -24,6 +24,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const sliderDisplayFps = document.getElementById("sliderDisplayFps");
     const valDisplayFps = document.getElementById("valDisplayFps");
     
+    const selectYoloModel = document.getElementById("selectYoloModel");
+    const modelSwitchStatus = document.getElementById("modelSwitchStatus");
     const btnRestartEngine = document.getElementById("btnRestartEngine");
     const btnClearStats = document.getElementById("btnClearStats");
     const btnOrientVertical = document.getElementById("btnOrientVertical");
@@ -537,6 +539,33 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Error saving configuration:", err);
         }
     }
+
+    // Load current model on startup
+    fetch('/api/engine/model').then(r => r.json()).then(data => {
+        selectYoloModel.value = data.model;
+    });
+
+    // Model selector
+    selectYoloModel.addEventListener("change", async () => {
+        const model = selectYoloModel.value;
+        modelSwitchStatus.textContent = "Chargement du modèle...";
+        modelSwitchStatus.style.color = "#f59e0b";
+        try {
+            await fetch('/api/engine/model', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model })
+            });
+            setTimeout(() => {
+                videoStreamImage.src = "/video_feed?t=" + new Date().getTime();
+                modelSwitchStatus.textContent = "Modèle actif : " + model;
+                modelSwitchStatus.style.color = "#00ff87";
+            }, 4000);
+        } catch (err) {
+            modelSwitchStatus.textContent = "Erreur lors du changement.";
+            modelSwitchStatus.style.color = "#ef4444";
+        }
+    });
 
     // Restart engine button
     btnRestartEngine.addEventListener("click", async () => {

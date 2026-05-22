@@ -196,6 +196,21 @@ def delete_camera(camera_id):
 
 # --- Reports & Exports API ---
 
+ALLOWED_MODELS = {"yolo11n.pt", "yolo11s.pt", "yolo11m.pt", "yolo11l.pt"}
+
+@app.route('/api/engine/model', methods=['GET', 'POST'])
+def engine_model():
+    if request.method == 'POST':
+        model_path = request.json.get('model')
+        if model_path not in ALLOWED_MODELS:
+            return jsonify({"error": "Modèle non autorisé"}), 400
+        active_cam_details = db.get_active_camera()
+        if not active_cam_details:
+            return jsonify({"error": "Aucune caméra active"}), 404
+        threading.Thread(target=detector.switch_model, args=(model_path, active_cam_details['source']), daemon=True).start()
+        return jsonify({"status": "switching", "model": model_path})
+    return jsonify({"model": detector.get_model_path(), "available": sorted(ALLOWED_MODELS)})
+
 @app.route('/api/engine/restart', methods=['POST'])
 def restart_engine():
     active_cam_details = db.get_active_camera()

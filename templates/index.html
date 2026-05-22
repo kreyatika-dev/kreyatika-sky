@@ -83,6 +83,19 @@
                 <div class="setting-group divider"></div>
 
                 <div class="setting-group">
+                    <label>Moteur YOLO</label>
+                    <select id="selectYoloModel" class="model-select">
+                        <option value="yolo11n.pt">YOLOv11n — Nano (rapide)</option>
+                        <option value="yolo11s.pt" selected>YOLOv11s — Small (recommandé)</option>
+                        <option value="yolo11m.pt">YOLOv11m — Medium (précis)</option>
+                        <option value="yolo11l.pt">YOLOv11l — Large (max précision)</option>
+                    </select>
+                    <small id="modelSwitchStatus"></small>
+                </div>
+
+                <div class="setting-group divider"></div>
+
+                <div class="setting-group">
                     <span class="setting-label">Objets à Analyser</span>
                     
                     <label class="toggle-control">
