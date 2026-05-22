@@ -1,15 +1,23 @@
-FROM python:3.11-slim
+FROM nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
 
+ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
 
-# OpenCV runtime dependencies
+# Install Python 3.11 and system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1 \
-    libglib2.0-0 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+    software-properties-common curl && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 python3.11-dev python3-pip \
+    libgl1 libglib2.0-0 && \
+    rm -rf /var/lib/apt/lists/* && \
+    ln -sf /usr/bin/python3.11 /usr/bin/python && \
+    ln -sf /usr/bin/python3.11 /usr/bin/python3
 
-# Install Python dependencies first (better layer caching)
+# PyTorch with CUDA 12.1 — installed before ultralytics so it uses GPU build
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu121
+
+# Install remaining dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
